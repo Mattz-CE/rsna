@@ -1,0 +1,30 @@
+2024-12-03 02:06:20,416 - INFO - Num GPUs Available: 2
+2024-12-03 02:06:20,417 - INFO - GPU devices: [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:1', device_type='GPU')]
+2024-12-03 02:06:21,086 - INFO - Using MirroredStrategy with devices ('/job:localhost/replica:0/task:0/device:GPU:0', '/job:localhost/replica:0/task:0/device:GPU:1')
+2024-12-03 02:06:21,255 - INFO - Number of devices in strategy: 2
+2024-12-03 02:06:21,256 - INFO - Total batch size: 512
+2024-12-03 02:06:21,256 - INFO - Loading and preparing data...
+2024-12-03 02:06:21,913 - INFO - Training samples: 43764, Validation samples: 10942
+2024-12-03 02:06:22,015 - INFO - Starting model training...
+2024-12-03 02:06:26,318 - INFO - Reduce to /job:localhost/replica:0/task:0/device:CPU:0 then broadcast to ('/job:localhost/replica:0/task:0/device:CPU:0',).
+2024-12-03 02:06:28,050 - INFO - Reduce to /job:localhost/replica:0/task:0/device:CPU:0 then broadcast to ('/job:localhost/replica:0/task:0/device:CPU:0',).
+2024-12-03 02:06:30,814 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:06:30,836 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:06:31,931 - INFO - Collective all_reduce tensors: 2 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:06:32,049 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:06:32,070 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:06:32,141 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:06:32,158 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:06:32,175 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:06:32,194 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:07:09,318 - INFO - Reduce to /job:localhost/replica:0/task:0/device:CPU:0 then broadcast to ('/job:localhost/replica:0/task:0/device:CPU:0',).
+2024-12-03 02:07:09,632 - INFO - Reduce to /job:localhost/replica:0/task:0/device:CPU:0 then broadcast to ('/job:localhost/replica:0/task:0/device:CPU:0',).
+2024-12-03 02:07:11,096 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:07:11,117 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:07:11,141 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:07:11,165 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:07:11,219 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:07:11,235 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:07:11,250 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:07:11,268 - INFO - Collective all_reduce tensors: 1 all_reduces, num_devices = 2, group_size = 2, implementation = CommunicationImplementation.NCCL, num_packs = 1
+2024-12-03 02:07:20,958 - INFO - Epoch 1: loss: 0.9307, accuracy: 0.3467, val_loss: 0.1251, val_accuracy: 0.9762, auc: 0.4944, val_auc: 0.4122

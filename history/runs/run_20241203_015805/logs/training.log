@@ -1,0 +1,4 @@
+2024-12-03 01:58:05,760 - INFO - Num GPUs Available: 2
+2024-12-03 01:58:06,363 - INFO - Using MirroredStrategy with devices ('/job:localhost/replica:0/task:0/device:GPU:0', '/job:localhost/replica:0/task:0/device:GPU:1')
+2024-12-03 01:58:07,128 - INFO - Number of devices in strategy: 2
+2024-12-03 01:58:07,129 - INFO - Loading and preparing data...

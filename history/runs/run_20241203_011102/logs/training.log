@@ -1,0 +1,8 @@
+2024-12-03 01:11:02,439 - INFO - Num GPUs Available: 2
+2024-12-03 01:11:02,440 - INFO - GPU devices: [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU'), PhysicalDevice(name='/physical_device:GPU:1', device_type='GPU')]
+2024-12-03 01:11:03,294 - INFO - Using MirroredStrategy with devices ('/job:localhost/replica:0/task:0/device:GPU:0', '/job:localhost/replica:0/task:0/device:GPU:1')
+2024-12-03 01:11:03,353 - INFO - Number of devices in strategy: 2
+2024-12-03 01:11:03,353 - INFO - Total batch size: 512
+2024-12-03 01:11:03,353 - INFO - Loading and preparing data...
+2024-12-03 01:11:04,005 - INFO - Training samples: 43764, Validation samples: 10942
+2024-12-03 01:11:04,110 - INFO - Starting model training...
