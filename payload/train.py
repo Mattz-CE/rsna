@@ -17,6 +17,11 @@ from sklearn.metrics import roc_auc_score
 
 # Checks KAGGLE environment
 KAGGLE = True if os.environ.get('KAGGLE_KERNEL_RUN_TYPE', 'Localhost') == 'Interactive' else False
+try:
+  import google.colab
+  IN_COLAB = True
+except:
+  IN_COLAB = False
 
 # Set up data paths
 
@@ -46,7 +51,7 @@ logging.basicConfig(
 # Config
 config = {
     'batch_size_per_gpu': 28,
-    'img_size': 512,
+    'img_size': 1024,
     'epochs': 35,
     'learning_rate': 0.001,
     'validation_split': 0.2
@@ -208,7 +213,7 @@ def update_run_dir_name(current_run_dir, epoch):
 
 def main():
     global run_dir
-    if not KAGGLE:
+    if not KAGGLE and not IN_COLAB:
         # Save script to run directory
         shutil.copy(__file__, os.path.join(run_dir, 'script.py'))
 
@@ -230,7 +235,7 @@ def main():
     # Load and prepare data
     logging.info("Loading and preparing data...")
     if KAGGLE:
-        base_path = '/kaggle/input/rsna-512/train_images_processed_512'
+        base_path = '/kaggle/input/rsna-'+str(config['img_size'])+'/train_images_processed_'+str(config['img_size'])
     else:
         try:
             import kagglehub
