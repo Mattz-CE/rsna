@@ -30,11 +30,22 @@ config = {
     'validation_split': 0.2
 }
 
+# Create initial run directory
+run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+run_dir = f"runs/run_{run_id}"  # Initial run directory without epoch count
+os.makedirs(run_dir, exist_ok=True)
+
+# Create subdirectories
+log_dir = os.path.join(run_dir, "logs")
+model_dir = os.path.join(run_dir, "models")
+tensorboard_dir = os.path.join(run_dir, "tensorboard")
+os.makedirs(log_dir, exist_ok=True)
+os.makedirs(model_dir, exist_ok=True)
+os.makedirs(tensorboard_dir, exist_ok=True)
+
 # Save config
 with open(os.path.join(run_dir, 'config.json'), 'w') as f:
     json.dump(config, f, indent=4)
-
-# Set up data paths
 
 # Create run directory
 run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -343,16 +354,4 @@ def main():
     logging.info(f"Training completed! All files saved in: {run_dir}")
 
 if __name__ == '__main__':
-    # Create initial run directory
-    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = f"runs/run_{run_id}"  # Initial run directory without epoch count
-    os.makedirs(run_dir, exist_ok=True)
-
-    # Create subdirectories
-    log_dir = os.path.join(run_dir, "logs")
-    model_dir = os.path.join(run_dir, "models")
-    tensorboard_dir = os.path.join(run_dir, "tensorboard")
-    os.makedirs(log_dir, exist_ok=True)
-    os.makedirs(model_dir, exist_ok=True)
-    os.makedirs(tensorboard_dir, exist_ok=True)
     main()
