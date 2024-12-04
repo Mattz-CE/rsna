@@ -72,15 +72,21 @@
 
 ## Additional Features
 - Automatic best model checkpointing based on validation loss
+  - Maybe should use AUC (but loss is balenced for classweights so doesn't matter)
 - Early stopping capability
 - Flexible configuration through JSON files
 - Support for Kaggle dataset integration
 - Error handling and GPU memory management
 
-## Future Improvements
+## Planed Features / TODO List
+- Test with ViT
+- Test with yolov11
+
+## Experimentation Space
 - Implement cross-validation
 - Experiment with other backbone architectures
 - Add model ensemble capabilities
 - Implement additional data augmentation techniques
 - Add model interpretability features
 - Integrate automated hyperparameter optimization
+- 
