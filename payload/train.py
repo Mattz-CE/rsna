@@ -17,11 +17,22 @@ from sklearn.metrics import roc_auc_score
 
 # Checks KAGGLE environment
 KAGGLE = True if os.environ.get('KAGGLE_KERNEL_RUN_TYPE', 'Localhost') == 'Interactive' else False
-try:
-  import google.colab
-  IN_COLAB = True
-except:
-  IN_COLAB = False
+
+import sys
+IN_COLAB = 'google.colab' in sys.modules
+
+# Config
+config = {
+    'batch_size_per_gpu': 14,
+    'img_size': 1024,
+    'epochs': 35,
+    'learning_rate': 0.001,
+    'validation_split': 0.2
+}
+
+# Save config
+with open(os.path.join(run_dir, 'config.json'), 'w') as f:
+    json.dump(config, f, indent=4)
 
 # Set up data paths
 
@@ -47,19 +58,6 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-
-# Config
-config = {
-    'batch_size_per_gpu': 28,
-    'img_size': 1024,
-    'epochs': 35,
-    'learning_rate': 0.001,
-    'validation_split': 0.2
-}
-
-# Save config
-with open(os.path.join(run_dir, 'config.json'), 'w') as f:
-    json.dump(config, f, indent=4)
 
 # Check CUDA availability
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
