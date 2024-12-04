@@ -16,6 +16,8 @@ from tqdm import tqdm
 from sklearn.metrics import roc_auc_score
 from torchsummary import summary
 
+from model import get_model
+
 # Checks KAGGLE environment
 KAGGLE = True if os.environ.get('KAGGLE_KERNEL_RUN_TYPE', 'Localhost') == 'Interactive' else False
 
@@ -24,7 +26,13 @@ IN_COLAB = 'google.colab' in sys.modules
 
 # Config
 config = {
-    'batch_size_per_gpu': 16,
+    'model_name': 'vit',
+    'batch_size_per_gpu': 8,
+    # 16GB GPU → try 16-32
+    # 24GB GPU → try 32-48
+    # 40GB GPU → try 48-64
+    'patch_size': 16, # 16x16 patch size for ViT
+    'num_workers' : 8,
     'img_size': 512,
     'epochs': 35,
     'learning_rate': 0.001,
@@ -97,7 +105,7 @@ class RSNADataset(Dataset):
         img_path = self.df.iloc[idx]['img_path']
         label = self.df.iloc[idx]['cancer']
         
-        image = Image.open(img_path).convert('RGB')
+        image = Image.open(img_path).convert('L') # Only loads gray scale to 1 channel
         
         if self.transform:
             image = self.transform(image)
@@ -106,17 +114,6 @@ class RSNADataset(Dataset):
 
     def get_pos_weight(self):
         return self.pos_weight
-
-class RESNETBaseline(nn.Module):
-    def __init__(self):
-        super(RESNETBaseline, self).__init__()
-        self.resnet = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
-        self.resnet.fc = nn.Linear(self.resnet.fc.in_features, 1)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        x = self.resnet(x)
-        return self.sigmoid(x)
 
 def train_epoch(model, train_loader, criterion, optimizer, device, epoch):
     model.train()
@@ -226,21 +223,21 @@ def main():
     if not KAGGLE and not IN_COLAB:
         # Save script to run directory
         shutil.copy(__file__, os.path.join(run_dir, 'script.py'))
+        shutil.copy('model.py', os.path.join(run_dir, 'model.py'))
 
     # Data transformations
     train_transform = transforms.Compose([
         transforms.Resize((config['img_size'], config['img_size'])),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        transforms.Normalize([0.5], [0.5])  # Single channel normalization
     ])
 
     val_transform = transforms.Compose([
         transforms.Resize((config['img_size'], config['img_size'])),
         transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        transforms.Normalize([0.5], [0.5])  # Single channel normalization
     ])
+
 
     # Load and prepare data
     logging.info("Loading and preparing data...")
@@ -268,17 +265,22 @@ def main():
     train_dataset = RSNADataset(train_df, transform=train_transform, is_training=True)
     val_dataset = RSNADataset(val_df, transform=val_transform, is_training=False)
 
-    train_loader = DataLoader(train_dataset, batch_size=config['total_batch_size'], shuffle=True, num_workers=4, pin_memory=True)
-    val_loader = DataLoader(val_dataset, batch_size=config['total_batch_size'], shuffle=False, num_workers=4, pin_memory=True)
+    train_loader = DataLoader(train_dataset, batch_size=config['total_batch_size'], shuffle=True, num_workers=config['num_workers'], pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=config['total_batch_size'], shuffle=False, num_workers=config['num_workers'], pin_memory=True)
 
     # Initialize model
-    model = RESNETBaseline()
+    model = get_model(
+        config['model_name'],
+        img_size=config['img_size'],
+        patch_size=config['patch_size'] if config['model_name'] == 'vit' else None
+    )
+
     if num_gpus > 1:
         model = nn.DataParallel(model)
     model = model.to(device)
 
     logging.info("Model summary:\n")
-    logging.info(summary(model, input_size=(config['img_size'], config['img_size'])))
+    logging.info(summary(model, input_size=(1, config['img_size'], config['img_size'])))
 
     # Use weighted BCE Loss
     pos_weight = torch.tensor([train_dataset.get_pos_weight()]).to(device)

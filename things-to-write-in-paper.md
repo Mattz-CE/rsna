@@ -79,6 +79,7 @@
 - Error handling and GPU memory management
 
 ## Planed Features / TODO List
+- RESNET101
 - Test with ViT
 - Test with yolov11
 

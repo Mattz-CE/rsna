@@ -5,8 +5,7 @@ if [ -L "/root/.cache" ]; then
     echo "Symlink already exists, skipping setup"
     ls -la /root/.cache
     # jump directly to pip
-    pip install scikit-learn pandas kagglehub
-    pip install 'tensorflow[and-cuda]'
+    pip install scikit-learn pandas kagglehub torchsummary tensorboard
     python train.py
     exit 0
 fi
@@ -31,6 +30,5 @@ echo "Cache symlink created. Using /workspace/.cache for storage"
 ls -la /root/.cache
 df -h
 
-pip install scikit-learn pandas kagglehub
-pip install 'tensorflow[and-cuda]'
+pip install scikit-learn pandas kagglehub torchsummary tensorboard
 python train.py

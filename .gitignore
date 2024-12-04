@@ -1,3 +1,6 @@
 /data/**
 *.dcm
 /history/**
+__pycache__/
+runs/
+.conda/
