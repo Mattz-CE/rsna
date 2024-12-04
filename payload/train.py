@@ -24,7 +24,7 @@ IN_COLAB = 'google.colab' in sys.modules
 # Config
 config = {
     'batch_size_per_gpu': 14,
-    'img_size': 1024,
+    'img_size': 512,
     'epochs': 35,
     'learning_rate': 0.001,
     'validation_split': 0.2
