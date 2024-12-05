@@ -1,8 +1,0 @@
-{
-    "model_name": "AdvancedResNet",
-    "batch_size_per_gpu": 256,
-    "img_size": 256,
-    "epochs": 35,
-    "learning_rate": 0.001,
-    "validation_split": 0.2
-}

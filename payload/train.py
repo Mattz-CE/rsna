@@ -1,25 +1,30 @@
+import os
+import logging
+import json
+import shutil
+from datetime import datetime
+from typing import Dict, Optional
+from tqdm import tqdm
+from PIL import Image
+
+import numpy as np
+import pandas as pd
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
+
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import models, transforms
-import pandas as pd
-from PIL import Image
-import os
-import logging
-from datetime import datetime
-import json
-import shutil
-from sklearn.model_selection import train_test_split
-import numpy as np
 from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
-from sklearn.metrics import roc_auc_score
 from torchsummary import summary
 
-from model import get_model
-
 # Checks KAGGLE environment
-KAGGLE = True if os.environ.get('KAGGLE_KERNEL_RUN_TYPE', 'Localhost') == 'Interactive' else False
+# KAGGLE = True if os.environ.get('KAGGLE_KERNEL_RUN_TYPE', 'Localhost') == 'Interactive' else False
+KAGGLE = True if os.path.exists('/kaggle/input') else False
+
+if not KAGGLE:
+    from model import get_model
 
 import sys
 IN_COLAB = 'google.colab' in sys.modules
@@ -38,7 +43,9 @@ config = {
     'img_size': 512,
     'epochs': 35,
     'learning_rate': 0.001,
-    'validation_split': 0.2
+    'validation_split': 0.2,
+    'early_stopping_margin': 0.03,  # Stop if train_auc - val_auc > margin
+    'early_stopping_patience': 3    # Number of epochs to wait before stopping
 }
 
 # Create initial run directory
@@ -240,7 +247,6 @@ def main():
         transforms.Normalize([0.5], [0.5])  # Single channel normalization
     ])
 
-
     # Load and prepare data
     logging.info("Loading and preparing data...")
     if KAGGLE:
@@ -305,7 +311,12 @@ def main():
 
     # Training loop
     best_val_loss = float('inf')
+    best_val_auc = 0.0
     metrics_list = []
+    
+    # Early stopping variables
+    early_stop_counter = 0
+    best_auc_diff = float('inf')
 
     for epoch in range(config['epochs']):
         # Training phase
@@ -316,6 +327,9 @@ def main():
         # Validation phase
         val_loss, val_acc, val_auc = validate(model, val_loader, criterion, device)
         
+        # Calculate AUC difference for early stopping
+        auc_diff = train_auc - val_auc
+        
         # Log metrics
         metrics = {
             'epoch': epoch + 1,
@@ -324,7 +338,8 @@ def main():
             'auc': train_auc,
             'val_loss': val_loss,
             'val_accuracy': val_acc,
-            'val_auc': val_auc
+            'val_auc': val_auc,
+            'auc_diff': auc_diff
         }
         metrics_list.append(metrics)
         
@@ -341,20 +356,38 @@ def main():
         writer.add_scalar('Accuracy/val', val_acc, epoch)
         writer.add_scalar('AUC/train', train_auc, epoch)
         writer.add_scalar('AUC/val', val_auc, epoch)
+        writer.add_scalar('AUC/difference', auc_diff, epoch)
         
-        # Save best model with updated path
+        # Save best models based on both validation loss and AUC
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), os.path.join(run_dir, 'models', 'best_model.pth'))
+            torch.save(model.state_dict(), os.path.join(run_dir, 'models', 'best_loss_model.pth'))
+            logging.info(f"New best validation loss: {best_val_loss:.4f}")
+            
+        if val_auc > best_val_auc:
+            best_val_auc = val_auc
+            torch.save(model.state_dict(), os.path.join(run_dir, 'models', 'best_auc_model.pth'))
+            logging.info(f"New best validation AUC: {best_val_auc:.4f}")
         
-        # Update learning rate
-        scheduler.step(val_loss)
+        # Early stopping check
+        if auc_diff > config['early_stopping_margin']:
+            early_stop_counter += 1
+            logging.info(f"Early stopping counter: {early_stop_counter}/{config['early_stopping_patience']}")
+            if early_stop_counter >= config['early_stopping_patience']:
+                logging.info(f"Early stopping triggered! Train AUC exceeds Val AUC by {auc_diff:.4f}")
+                break
+        else:
+            early_stop_counter = 0
+        
+        # Update learning rate based on validation AUC instead of loss
+        scheduler.step(-val_auc)  # Negative because scheduler is in 'min' mode
         
         # Log epoch summary
         logging.info(
             f"Epoch {epoch + 1}: "
             f"loss: {train_loss:.4f}, accuracy: {train_acc:.4f}, auc: {train_auc:.4f}, "
-            f"val_loss: {val_loss:.4f}, val_accuracy: {val_acc:.4f}, val_auc: {val_auc:.4f}"
+            f"val_loss: {val_loss:.4f}, val_accuracy: {val_acc:.4f}, val_auc: {val_auc:.4f}, "
+            f"auc_diff: {auc_diff:.4f}"
         )
 
     # Save final model with updated path
