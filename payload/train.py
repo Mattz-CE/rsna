@@ -64,19 +64,6 @@ os.makedirs(tensorboard_dir, exist_ok=True)
 with open(os.path.join(run_dir, 'config.json'), 'w') as f:
     json.dump(config, f, indent=4)
 
-# Create run directory
-run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-run_dir = f"runs/run_{run_id}"
-os.makedirs(run_dir, exist_ok=True)
-
-# Create subdirectories
-log_dir = os.path.join(run_dir, "logs")
-model_dir = os.path.join(run_dir, "models")
-tensorboard_dir = os.path.join(run_dir, "tensorboard")
-os.makedirs(log_dir, exist_ok=True)
-os.makedirs(model_dir, exist_ok=True)
-os.makedirs(tensorboard_dir, exist_ok=True)
-
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
