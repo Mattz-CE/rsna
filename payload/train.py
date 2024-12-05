@@ -26,13 +26,15 @@ IN_COLAB = 'google.colab' in sys.modules
 
 # Config
 config = {
-    'model_name': 'vit',
-    'batch_size_per_gpu': 8,
+    'model_name': 'efficientnet',
+    'batch_size_per_gpu': 32,
     # 16GB GPU → try 16-32
     # 24GB GPU → try 32-48
     # 40GB GPU → try 48-64
     'patch_size': 16, # 16x16 patch size for ViT
-    'num_workers' : 8,
+    # 'num_workers' : for amount of cores x2 u got max 16
+    'num_workers' : max(os.cpu_count() * 2 if not IN_COLAB else 4 , 16) if not KAGGLE else 4,\
+    'unfreeze_layers': 3,
     'img_size': 512,
     'epochs': 35,
     'learning_rate': 0.001,
@@ -41,7 +43,7 @@ config = {
 
 # Create initial run directory
 run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-run_dir = f"runs/run_{run_id}"  # Initial run directory without epoch count
+run_dir = f"runs/run_{config['model_name']}_{run_id}"  # Initial run directory without epoch count
 os.makedirs(run_dir, exist_ok=True)
 
 # Create subdirectories
@@ -274,6 +276,7 @@ def main():
         img_size=config['img_size'],
         patch_size=config['patch_size'] if config['model_name'] == 'vit' else None
     )
+    model.unfreeze_last_n_layers(n=config['unfreeze_layers'])
 
     if num_gpus > 1:
         model = nn.DataParallel(model)
