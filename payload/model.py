@@ -30,21 +30,23 @@ class RESNETBaseline(nn.Module):
         for param in self.resnet.fc.parameters():
             param.requires_grad = True
 
-    def unfreeze_last_n_layers(self, n=2):
-        """Unfreeze the last n blocks of the ResNet"""
+    def unfreeze_last_n_layers(self, n=3):
+        """Unfreeze the last n Bottleneck modules of ResNet"""
         # First freeze everything
         self._freeze_layers()
         
-        # Unfreeze the last n blocks (each block has multiple layers)
-        layers_to_unfreeze = list(self.resnet.layer4[-n:])  # Last n blocks of layer4
-        for layer in layers_to_unfreeze:
-            for param in layer.parameters():
+        # Get the last n Bottleneck modules from layer4
+        bottlenecks = list(self.resnet.layer4)[-n:]
+        
+        # Unfreeze only these Bottleneck modules
+        for bottleneck in bottlenecks:
+            for param in bottleneck.parameters():
                 param.requires_grad = True
         
-        # Always unfreeze FC layer
+        # Always ensure fc layer is unfrozen
         for param in self.resnet.fc.parameters():
             param.requires_grad = True
-
+        
     def forward(self, x):
         x = self.resnet(x)
         return self.sigmoid(x)
@@ -217,18 +219,23 @@ class RSNAViT(nn.Module):
         for param in self.vit.head.parameters():
             param.requires_grad = True
 
-    def unfreeze_last_n_layers(self, n=2):
+    def unfreeze_last_n_layers(self, n=3):
         """Unfreeze the last n transformer blocks"""
         # First freeze everything
         self._freeze_layers()
         
+        # Get the transformer blocks in reverse order
+        blocks = list(self.vit.blocks)[-n:]
+        
         # Unfreeze the last n transformer blocks
-        for block in self.vit.blocks[-n:]:
+        for block in blocks:
             for param in block.parameters():
                 param.requires_grad = True
         
-        # Always unfreeze head
+        # Always unfreeze the head and final norm layer
         for param in self.vit.head.parameters():
+            param.requires_grad = True
+        for param in self.vit.norm.parameters():
             param.requires_grad = True
 
     def forward(self, x):
@@ -344,10 +351,6 @@ if __name__ == "__main__":
             model = model.to(device)
             print(f"\nTesting {name}:")
             print("-" * 50)
-            
-            # Show summary with frozen layers
-            print("\nModel summary with frozen layers:")
-            print_model_summary(model, input_size=INPUT_SIZE, device=device)
             
             # Unfreeze last few layers and show summary again
             model.unfreeze_last_n_layers(n=3)

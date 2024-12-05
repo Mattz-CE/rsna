@@ -37,8 +37,7 @@ config = {
     # 24GB GPU → try 32-48
     # 40GB GPU → try 48-64
     'patch_size': 16, # 16x16 patch size for ViT
-    # 'num_workers' : for amount of cores x2 u got max 16
-    'num_workers' : max(os.cpu_count() * 2 if not IN_COLAB else 4 , 16) if not KAGGLE else 4,\
+    'num_workers' : min(os.cpu_count() * 2 if not IN_COLAB else 4 , 16) if not KAGGLE else 4,\
     'unfreeze_layers': 3,
     'img_size': 512,
     'epochs': 35,
