@@ -80,7 +80,7 @@
 
 ## Planed Features / TODO List
 - RESNET101
-- Test with ViT
+- Test with ViT (referencing https://huggingface.co/microsoft/beit-large-patch16-512) finetuning base
 - Test with yolov11
 
 ## Experimentation Space
