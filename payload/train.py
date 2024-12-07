@@ -31,7 +31,7 @@ IN_COLAB = 'google.colab' in sys.modules
 
 # Config
 config = {
-    'model_name': 'efficientnet',
+    'model_name': 'vit_base',
     'batch_size_per_gpu': 32,
     # 16GB GPU → try 16-32
     # 24GB GPU → try 32-48
@@ -266,7 +266,7 @@ def main():
     model = get_model(
         config['model_name'],
         img_size=config['img_size'],
-        patch_size=config['patch_size'] if config['model_name'] == 'vit' else None
+        patch_size=config['patch_size'] if  'vit' in config['model_name'] else None
     )
     model.unfreeze_last_n_layers(n=config['unfreeze_layers'])
 
