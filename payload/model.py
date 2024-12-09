@@ -173,14 +173,80 @@ class RSNAViTBase(nn.Module):
         x = self.model(x)
         return self.sigmoid(x)
 
+###### RSNAViTMediumD ######
+class RSNAViTMediumD(nn.Module):
+    def __init__(self, img_size=384, patch_size=16, **kwargs):
+        super(RSNAViTMediumD, self).__init__()
+        # Ensure img_size is compatible with patch_size
+        assert img_size % patch_size == 0, f"Image size {img_size} must be divisible by patch size {patch_size}"
+        
+        # Load pretrained ViT MediumD with registers and global average pooling
+        self.model = timm.create_model(
+            'vit_mediumd_patch16_reg4_gap_384.sbb2_e200_in12k_ft_in1k',
+            pretrained=True,
+            num_classes=1,
+            img_size=img_size,
+            patch_size=patch_size
+        )
+        
+        # Modify patch embedding for single channel input
+        original_patch_embed = self.model.patch_embed.proj
+        self.model.patch_embed.proj = nn.Conv2d(
+            1, original_patch_embed.out_channels,
+            kernel_size=patch_size, stride=patch_size
+        )
+        
+        # Initialize new patch embedding with average of pretrained weights
+        with torch.no_grad():
+            self.model.patch_embed.proj.weight.data = original_patch_embed.weight.data.mean(
+                dim=1, keepdim=True
+            )
+        
+        # Add sigmoid activation for binary classification
+        self.sigmoid = nn.Sigmoid()
+        
+        # Freeze all layers by default
+        self._freeze_layers()
+    
+    def _freeze_layers(self):
+        """Freeze all layers except the head"""
+        for param in self.model.parameters():
+            param.requires_grad = False
+        # Unfreeze the classification head
+        for param in self.model.head.parameters():
+            param.requires_grad = True
+    
+    def unfreeze_last_n_layers(self, n=3):
+        """Unfreeze the last n transformer blocks and the head"""
+        # First freeze everything
+        self._freeze_layers()
+        
+        # Unfreeze the last n transformer blocks
+        for block in self.model.blocks[-n:]:
+            for param in block.parameters():
+                param.requires_grad = True
+        
+        # Always unfreeze head
+        for param in self.model.head.parameters():
+            param.requires_grad = True
+        
+        # Unfreeze layer norm layers
+        for param in self.model.norm.parameters():
+            param.requires_grad = True
+    
+    def forward(self, x):
+        x = self.model(x)
+        return self.sigmoid(x)
+
 ###### FETCH #######
 
 def get_model(model_name, **kwargs):
     """Factory function to get the specified model"""
     models = {
-        'resnet50': RESNETBaseline,
-        'efficientnet': RSNAEfficientNetV2,
-        'vit_base': RSNAViTBase
+        'resnet': RESNETBaseline,
+        'effinet': RSNAEfficientNetV2,
+        'vit_base': RSNAViTBase,
+        'vit_mediumd': RSNAViTMediumD
     }
     
     if model_name not in models:
@@ -217,9 +283,10 @@ if __name__ == "__main__":
     
     # Initialize all models
     models_to_test = {
-        # 'ResNet50': get_model('resnet50'),
-        # 'EfficientNetV2': get_model('efficientnet'),
-        'ViT-Base': get_model('vit_base')
+        'resnet': get_model('resnet'),
+        'effinet': get_model('effinet'),
+        'vit_base': get_model('vit_base'),
+        'vit_mediumd': get_model('vit_mediumd')
     }
     
     # Print summary for each model

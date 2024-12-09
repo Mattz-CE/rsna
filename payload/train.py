@@ -209,7 +209,38 @@ def update_run_dir_name(current_run_dir, epoch):
     new_run_dir = os.path.join(base_path, f"{run_id}_ep{epoch}")
     
     if os.path.exists(current_run_dir) and current_run_dir != new_run_dir:
-        os.rename(current_run_dir, new_run_dir)
+        # Create new directories before moving
+        new_tensorboard_dir = os.path.join(new_run_dir, "tensorboard")
+        new_log_dir = os.path.join(new_run_dir, "logs")
+        new_model_dir = os.path.join(new_run_dir, "models")
+        
+        os.makedirs(new_run_dir, exist_ok=True)
+        os.makedirs(new_tensorboard_dir, exist_ok=True)
+        os.makedirs(new_log_dir, exist_ok=True)
+        os.makedirs(new_model_dir, exist_ok=True)
+        
+        # Move contents from old directories to new ones
+        old_tensorboard_dir = os.path.join(current_run_dir, "tensorboard")
+        old_log_dir = os.path.join(current_run_dir, "logs")
+        old_model_dir = os.path.join(current_run_dir, "models")
+        
+        if os.path.exists(old_tensorboard_dir):
+            for item in os.listdir(old_tensorboard_dir):
+                shutil.move(os.path.join(old_tensorboard_dir, item), new_tensorboard_dir)
+        if os.path.exists(old_log_dir):
+            for item in os.listdir(old_log_dir):
+                shutil.move(os.path.join(old_log_dir, item), new_log_dir)
+        if os.path.exists(old_model_dir):
+            for item in os.listdir(old_model_dir):
+                shutil.move(os.path.join(old_model_dir, item), new_model_dir)
+                
+        # Move any remaining files
+        for item in os.listdir(current_run_dir):
+            if item not in ["tensorboard", "logs", "models"]:
+                shutil.move(os.path.join(current_run_dir, item), new_run_dir)
+                
+        # Remove old directory
+        shutil.rmtree(current_run_dir)
         
     return new_run_dir
 
@@ -293,7 +324,7 @@ def main():
     )
 
     # TensorBoard writer
-    writer = SummaryWriter(tensorboard_dir)
+    writer = None  # Initialize writer as None
 
     # Training loop
     best_val_loss = float('inf')
@@ -305,6 +336,15 @@ def main():
     best_auc_diff = float('inf')
 
     for epoch in range(config['epochs']):
+        # Update run directory name with current epoch
+        run_dir = update_run_dir_name(run_dir, epoch + 1)
+        
+        # Update tensorboard writer for the new directory
+        if writer is not None:
+            writer.close()
+        tensorboard_dir = os.path.join(run_dir, "tensorboard")
+        writer = SummaryWriter(tensorboard_dir)
+        
         # Training phase
         train_loss, train_acc, train_auc = train_epoch(
             model, train_loader, criterion, optimizer, device, epoch
@@ -328,9 +368,6 @@ def main():
             'auc_diff': auc_diff
         }
         metrics_list.append(metrics)
-        
-        # Update run directory name with current epoch
-        run_dir = update_run_dir_name(run_dir, epoch + 1)
         
         # Save metrics with updated path
         pd.DataFrame(metrics_list).to_csv(os.path.join(run_dir, 'metrics.csv'), index=False)
@@ -376,9 +413,12 @@ def main():
             f"auc_diff: {auc_diff:.4f}"
         )
 
+    # Close the final writer
+    if writer is not None:
+        writer.close()
+
     # Save final model with updated path
     torch.save(model.state_dict(), os.path.join(run_dir, 'models', 'final_model.pth'))
-    writer.close()
     logging.info(f"Training completed! All files saved in: {run_dir}")
 
 if __name__ == '__main__':
