@@ -31,7 +31,7 @@ IN_COLAB = 'google.colab' in sys.modules
 
 # Config
 config = {
-    'model_name': 'vit_base',
+    'model_name': 'vit_mediumd',
     'batch_size_per_gpu': 32,
     # 16GB GPU → try 16-32
     # 24GB GPU → try 32-48
