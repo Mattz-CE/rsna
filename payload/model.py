@@ -175,7 +175,7 @@ class RSNAViTBase(nn.Module):
 
 ###### RSNAViTMediumD ######
 class RSNAViTMediumD(nn.Module):
-    def __init__(self, img_size=384, patch_size=16, **kwargs):
+    def __init__(self, img_size=512, patch_size=16, **kwargs):
         super(RSNAViTMediumD, self).__init__()
         # Ensure img_size is compatible with patch_size
         assert img_size % patch_size == 0, f"Image size {img_size} must be divisible by patch size {patch_size}"
