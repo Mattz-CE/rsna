@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
+from torchsummary import summary as ts
 from torchinfo import summary
 import timm
     
