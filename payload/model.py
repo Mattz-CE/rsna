@@ -7,7 +7,6 @@ from torchinfo import summary
 import timm
     
 ###### RESNET ######
-
 class RESNETBaseline(nn.Module):
     def __init__(self, img_size=None, patch_size=None, **kwargs):
         super(RESNETBaseline, self).__init__()
