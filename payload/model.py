@@ -53,6 +53,52 @@ class RESNETBaseline(nn.Module):
         x = self.resnet(x)
         return self.sigmoid(x)
 
+class RESNET101(nn.Module):
+    def __init__(self, img_size=None, patch_size=None, **kwargs):
+        super(RESNET101, self).__init__()
+        self.resnet = models.resnet101(weights=models.ResNet101_Weights.IMAGENET1K_V2)
+        original_conv = self.resnet.conv1
+        self.resnet.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        
+        with torch.no_grad():
+            self.resnet.conv1.weight.data = original_conv.weight.data.mean(dim=1, keepdim=True)
+        
+        # Modify final fully connected layer
+        self.resnet.fc = nn.Linear(self.resnet.fc.in_features, 1)
+        self.sigmoid = nn.Sigmoid()
+        
+        # Freeze all layers by default
+        self._freeze_layers()
+
+    def _freeze_layers(self):
+        """Freeze all layers except the final classifier"""
+        for param in self.resnet.parameters():
+            param.requires_grad = False
+        # Unfreeze the final fully connected layer
+        for param in self.resnet.fc.parameters():
+            param.requires_grad = True
+
+    def unfreeze_last_n_layers(self, n=3):
+        """Unfreeze the last n Bottleneck modules of ResNet"""
+        # First freeze everything
+        self._freeze_layers()
+        
+        # Get the last n Bottleneck modules from layer4
+        bottlenecks = list(self.resnet.layer4)[-n:]
+        
+        # Unfreeze only these Bottleneck modules
+        for bottleneck in bottlenecks:
+            for param in bottleneck.parameters():
+                param.requires_grad = True
+        
+        # Always ensure fc layer is unfrozen
+        for param in self.resnet.fc.parameters():
+            param.requires_grad = True
+        
+    def forward(self, x):
+        x = self.resnet(x)
+        return self.sigmoid(x)
+
 ###### EfficientNetV2 ######
 class RSNAEfficientNetV2(nn.Module):
     def __init__(self, img_size=None, patch_size=None, pretrained_weights=None, **kwargs):
@@ -244,6 +290,7 @@ def get_model(model_name, **kwargs):
     """Factory function to get the specified model"""
     models = {
         'resnet': RESNETBaseline,
+        'resnet101': RESNET101,
         'effinet': RSNAEfficientNetV2,
         'vit_base': RSNAViTBase,
         'vit_mediumd': RSNAViTMediumD
@@ -284,6 +331,7 @@ if __name__ == "__main__":
     # Initialize all models
     models_to_test = {
         'resnet': get_model('resnet'),
+        'resnet101': get_model('resnet101'),
         'effinet': get_model('effinet'),
         'vit_base': get_model('vit_base'),
         'vit_mediumd': get_model('vit_mediumd')

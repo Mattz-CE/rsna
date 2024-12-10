@@ -91,6 +91,12 @@
 - Add model interpretability features
 - Integrate automated hyperparameter optimization
 
+## References
+- [How to train Vit](https://arxiv.org/abs/2010.11929)
+- [ViT](https://arxiv.org/abs/2010.11929)
+- [resnet](https://arxiv.org/abs/1512.03385)
+- [Effinet](https://arxiv.org/abs/1905.11946)
+
 
 ## Models
 ### 1. ResNet50V2 with Class Weights
