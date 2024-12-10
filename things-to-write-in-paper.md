@@ -1,292 +1,160 @@
 # RSNA Cancer Detection Project Documentation (WIP)
 ## Infrastructure and Setup
-- Multi-GPU configuration using TensorFlow's MirroredStrategy
+- Multi-GPU configuration using PyTorch's DataParallel
 - Distributed training across available GPUs
-- Dynamic batch size scaling based on number of GPUs
+- Dynamic batch size scaling based on number of GPUs (16-64 per GPU based on VRAM)
+  - 16GB GPU → 16-32 batch size
+  - 24GB GPU → 32-48 batch size
+  - 40GB GPU → 48-64 batch size
 - Organized run directory structure with dedicated folders for:
   - Logs
   - Model checkpoints
   - TensorBoard visualization
   - Configuration files
+  - Script versioning
+  - Early Stopping (with patience of 3 epoches)
 
 ## Data Processing
 - Image preprocessing pipeline:
-  - Resizing to 512x512 pixels 1024x1024 pixels from DICOM
-  - Normalization (0-1 range)
+  - Resizing to 512x512 pixels from DICOM
+  - Single-channel grayscale input
+  - Normalization (mean=0.5, std=0.5)
   - Data augmentation during training:
     - Random horizontal flips
     - Random vertical flips
-- Dataset management using TensorFlow data API
+- Dataset management using PyTorch DataLoader
 - Efficient data loading with prefetching and parallel processing
+- Dynamic worker scaling based on CPU cores
 
-## Model Architecture
-- Base model: ResNet50V2 pretrained on ImageNet
-- Transfer learning approach with frozen base layers
-- Custom top layer for binary classification
-- Input shape: (img_size, img_size)
-- Output: Single sigmoid unit for cancer detection
+## Model Architectures
+### ResNet Models
+1. ResNet50V2 (Baseline)
+   - Pretrained on ImageNet
+   - Modified first conv layer for single-channel input
+   - Custom top layer for binary classification
+   - Transfer learning with selective layer unfreezing
+
+2. ResNet101
+   - Enhanced capacity compared to ResNet50
+   - Similar architecture with deeper layers
+   - Improved feature extraction capabilities
+
+### Vision Transformer (ViT) Models
+1. ViT Base
+   - Patch size: 16x16
+   - Pretrained on ImageNet
+   - Modified patch embedding for single-channel input
+   - Custom classification head
+
+2. ViT MediumD
+   - Advanced ViT variant with registers and global average pooling
+   - Pretrained on ImageNet-12K and fine-tuned on ImageNet-1K
+   - Enhanced patch processing
+   - Improved attention mechanisms
+
+### EfficientNetV2
+- State-of-the-art efficient architecture
+- Modified first conv layer for single-channel input
+- Progressive layer unfreezing capability
+- Optimized for mobile and edge devices
 
 ## Training Configuration
 - Initial learning rate: 0.001
-- Batch size per GPU: 256
+- Batch size: Dynamically scaled per GPU
 - Training epochs: 35
 - Validation split: 20%
 - Learning rate scheduling:
   - ReduceLROnPlateau with patience=3
   - Factor=0.5 for learning rate reduction
+- Transfer learning strategy:
+  - Initial frozen layers except classification head
+  - Progressive unfreezing of last n layers (default n=3)
+  - Layer-specific learning rates
 
 ## Dataset Characteristics
 - Severe class imbalance:
   - Positive cases: 1,158 (2.12%)
   - Negative cases: 53,548 (97.88%)
-- Implementation of class weights to handle imbalance
+- Implementation of weighted BCE loss with positive class weighting
 - Total dataset size: 54,706 images
 
 ## Metrics and Evaluation
-- Comprehensive evaluation metrics:
+- Primary metrics:
   - Area Under the Curve (AUC)
+  - Binary Cross-Entropy Loss
   - Accuracy
-  - Loss (Binary Cross-Entropy)
+- Secondary metrics:
   - Precision
   - Recall
   - F1 Score
-- Validation performance monitoring
-- Custom callback for metrics logging
+- AUC difference monitoring for overfitting detection
+- Validation performance tracking
+- Custom metrics logging system
 
 ## Model Monitoring and Logging
-- Detailed logging system with both file and console output
-- TensorBoard integration for:
-  - Loss and metrics visualization
+- Comprehensive TensorBoard integration:
+  - Loss curves (train/val)
+  - Accuracy metrics
+  - AUC tracking
   - Learning rate monitoring
   - Model architecture visualization
+- Detailed logging system with both file and console output
 - CSV logging of all metrics per epoch
 - Configuration file versioning
+- Automatic run directory management with epoch tracking
 
-## Experiment Tracking
-- Unique run IDs based on timestamp
-- Complete experiment reproducibility through:
-  - Saved configuration files
-  - Copied training scripts
-  - Detailed logging
-  - Model checkpoints
-
-## Additional Features
-- Automatic best model checkpointing based on validation loss
-  - Maybe should use AUC (but loss is balenced for classweights so doesn't matter)
-- Early stopping capability
-- Flexible configuration through JSON files
-- Support for Kaggle dataset integration
-- Error handling and GPU memory management
-
-## Planed Features / TODO List
-- RESNET101
-- Test with ViT (referencing https://huggingface.co/microsoft/beit-large-patch16-512) finetuning base
-- Test with yolov11
+## Training Features
+- Early stopping based on AUC difference:
+  - Margin threshold: 0.03
+  - Patience: 3 epochs
+- Best model checkpointing based on:
+  - Validation loss
+  - Validation AUC
+- Automatic learning rate adjustment
+- GPU memory optimization
+- Kaggle integration support
 
 ## Experimentation Space
-- Implement cross-validation
-- Experiment with other backbone architectures
-- Add model ensemble capabilities
-- Implement additional data augmentation techniques
-- Add model interpretability features
-- Integrate automated hyperparameter optimization
+- Cross-validation implementation
+- Model ensemble strategies
+- Additional data augmentation techniques
+- Model interpretability features
+- Automated hyperparameter optimization
+- Alternative backbone architectures
 
 ## References
-- [How to train Vit](https://arxiv.org/abs/2010.11929)
-- [ViT](https://arxiv.org/abs/2010.11929)
-- [resnet](https://arxiv.org/abs/1512.03385)
-- [Effinet](https://arxiv.org/abs/1905.11946)
+- [Vision Transformer (ViT)](https://arxiv.org/abs/2010.11929)
+- [ResNet Architecture](https://arxiv.org/abs/1512.03385)
+- [EfficientNetV2](https://arxiv.org/abs/1905.11946)
+- [Transfer Learning Best Practices](https://arxiv.org/abs/1911.02685)
 
+## Models Architecture Details
+### 1. Vision Transformer (ViT) Base
+- Input: 512x512 single-channel images
+- Patch size: 16x16
+- Transformer blocks with self-attention
+- Classification head with sigmoid activation
+- Progressive unfreezing capability
+- Pretrained weights from ImageNet
 
-## Models
-### 1. ResNet50V2 with Class Weights
-----------------------------------------------------------------
-        Layer (type)               Output Shape         Param #
-================================================================
-            Conv2d-1         [-1, 64, 256, 256]           9,408
-       BatchNorm2d-2         [-1, 64, 256, 256]             128
-              ReLU-3         [-1, 64, 256, 256]               0
-         MaxPool2d-4         [-1, 64, 128, 128]               0
-            Conv2d-5         [-1, 64, 128, 128]           4,096
-       BatchNorm2d-6         [-1, 64, 128, 128]             128
-              ReLU-7         [-1, 64, 128, 128]               0
-            Conv2d-8         [-1, 64, 128, 128]          36,864
-       BatchNorm2d-9         [-1, 64, 128, 128]             128
-             ReLU-10         [-1, 64, 128, 128]               0
-           Conv2d-11        [-1, 256, 128, 128]          16,384
-      BatchNorm2d-12        [-1, 256, 128, 128]             512
-           Conv2d-13        [-1, 256, 128, 128]          16,384
-      BatchNorm2d-14        [-1, 256, 128, 128]             512
-             ReLU-15        [-1, 256, 128, 128]               0
-       Bottleneck-16        [-1, 256, 128, 128]               0
-           Conv2d-17         [-1, 64, 128, 128]          16,384
-      BatchNorm2d-18         [-1, 64, 128, 128]             128
-             ReLU-19         [-1, 64, 128, 128]               0
-           Conv2d-20         [-1, 64, 128, 128]          36,864
-      BatchNorm2d-21         [-1, 64, 128, 128]             128
-             ReLU-22         [-1, 64, 128, 128]               0
-           Conv2d-23        [-1, 256, 128, 128]          16,384
-      BatchNorm2d-24        [-1, 256, 128, 128]             512
-             ReLU-25        [-1, 256, 128, 128]               0
-       Bottleneck-26        [-1, 256, 128, 128]               0
-           Conv2d-27         [-1, 64, 128, 128]          16,384
-      BatchNorm2d-28         [-1, 64, 128, 128]             128
-             ReLU-29         [-1, 64, 128, 128]               0
-           Conv2d-30         [-1, 64, 128, 128]          36,864
-      BatchNorm2d-31         [-1, 64, 128, 128]             128
-             ReLU-32         [-1, 64, 128, 128]               0
-           Conv2d-33        [-1, 256, 128, 128]          16,384
-      BatchNorm2d-34        [-1, 256, 128, 128]             512
-             ReLU-35        [-1, 256, 128, 128]               0
-       Bottleneck-36        [-1, 256, 128, 128]               0
-           Conv2d-37        [-1, 128, 128, 128]          32,768
-      BatchNorm2d-38        [-1, 128, 128, 128]             256
-             ReLU-39        [-1, 128, 128, 128]               0
-           Conv2d-40          [-1, 128, 64, 64]         147,456
-      BatchNorm2d-41          [-1, 128, 64, 64]             256
-             ReLU-42          [-1, 128, 64, 64]               0
-           Conv2d-43          [-1, 512, 64, 64]          65,536
-      BatchNorm2d-44          [-1, 512, 64, 64]           1,024
-           Conv2d-45          [-1, 512, 64, 64]         131,072
-      BatchNorm2d-46          [-1, 512, 64, 64]           1,024
-             ReLU-47          [-1, 512, 64, 64]               0
-       Bottleneck-48          [-1, 512, 64, 64]               0
-           Conv2d-49          [-1, 128, 64, 64]          65,536
-      BatchNorm2d-50          [-1, 128, 64, 64]             256
-             ReLU-51          [-1, 128, 64, 64]               0
-           Conv2d-52          [-1, 128, 64, 64]         147,456
-      BatchNorm2d-53          [-1, 128, 64, 64]             256
-             ReLU-54          [-1, 128, 64, 64]               0
-           Conv2d-55          [-1, 512, 64, 64]          65,536
-      BatchNorm2d-56          [-1, 512, 64, 64]           1,024
-             ReLU-57          [-1, 512, 64, 64]               0
-       Bottleneck-58          [-1, 512, 64, 64]               0
-           Conv2d-59          [-1, 128, 64, 64]          65,536
-      BatchNorm2d-60          [-1, 128, 64, 64]             256
-             ReLU-61          [-1, 128, 64, 64]               0
-           Conv2d-62          [-1, 128, 64, 64]         147,456
-      BatchNorm2d-63          [-1, 128, 64, 64]             256
-             ReLU-64          [-1, 128, 64, 64]               0
-           Conv2d-65          [-1, 512, 64, 64]          65,536
-      BatchNorm2d-66          [-1, 512, 64, 64]           1,024
-             ReLU-67          [-1, 512, 64, 64]               0
-       Bottleneck-68          [-1, 512, 64, 64]               0
-           Conv2d-69          [-1, 128, 64, 64]          65,536
-      BatchNorm2d-70          [-1, 128, 64, 64]             256
-             ReLU-71          [-1, 128, 64, 64]               0
-           Conv2d-72          [-1, 128, 64, 64]         147,456
-      BatchNorm2d-73          [-1, 128, 64, 64]             256
-             ReLU-74          [-1, 128, 64, 64]               0
-           Conv2d-75          [-1, 512, 64, 64]          65,536
-      BatchNorm2d-76          [-1, 512, 64, 64]           1,024
-             ReLU-77          [-1, 512, 64, 64]               0
-       Bottleneck-78          [-1, 512, 64, 64]               0
-           Conv2d-79          [-1, 256, 64, 64]         131,072
-      BatchNorm2d-80          [-1, 256, 64, 64]             512
-             ReLU-81          [-1, 256, 64, 64]               0
-           Conv2d-82          [-1, 256, 32, 32]         589,824
-      BatchNorm2d-83          [-1, 256, 32, 32]             512
-             ReLU-84          [-1, 256, 32, 32]               0
-           Conv2d-85         [-1, 1024, 32, 32]         262,144
-      BatchNorm2d-86         [-1, 1024, 32, 32]           2,048
-           Conv2d-87         [-1, 1024, 32, 32]         524,288
-      BatchNorm2d-88         [-1, 1024, 32, 32]           2,048
-             ReLU-89         [-1, 1024, 32, 32]               0
-       Bottleneck-90         [-1, 1024, 32, 32]               0
-           Conv2d-91          [-1, 256, 32, 32]         262,144
-      BatchNorm2d-92          [-1, 256, 32, 32]             512
-             ReLU-93          [-1, 256, 32, 32]               0
-           Conv2d-94          [-1, 256, 32, 32]         589,824
-      BatchNorm2d-95          [-1, 256, 32, 32]             512
-             ReLU-96          [-1, 256, 32, 32]               0
-           Conv2d-97         [-1, 1024, 32, 32]         262,144
-      BatchNorm2d-98         [-1, 1024, 32, 32]           2,048
-             ReLU-99         [-1, 1024, 32, 32]               0
-      Bottleneck-100         [-1, 1024, 32, 32]               0
-          Conv2d-101          [-1, 256, 32, 32]         262,144
-     BatchNorm2d-102          [-1, 256, 32, 32]             512
-            ReLU-103          [-1, 256, 32, 32]               0
-          Conv2d-104          [-1, 256, 32, 32]         589,824
-     BatchNorm2d-105          [-1, 256, 32, 32]             512
-            ReLU-106          [-1, 256, 32, 32]               0
-          Conv2d-107         [-1, 1024, 32, 32]         262,144
-     BatchNorm2d-108         [-1, 1024, 32, 32]           2,048
-            ReLU-109         [-1, 1024, 32, 32]               0
-      Bottleneck-110         [-1, 1024, 32, 32]               0
-          Conv2d-111          [-1, 256, 32, 32]         262,144
-     BatchNorm2d-112          [-1, 256, 32, 32]             512
-            ReLU-113          [-1, 256, 32, 32]               0
-          Conv2d-114          [-1, 256, 32, 32]         589,824
-     BatchNorm2d-115          [-1, 256, 32, 32]             512
-            ReLU-116          [-1, 256, 32, 32]               0
-          Conv2d-117         [-1, 1024, 32, 32]         262,144
-     BatchNorm2d-118         [-1, 1024, 32, 32]           2,048
-            ReLU-119         [-1, 1024, 32, 32]               0
-      Bottleneck-120         [-1, 1024, 32, 32]               0
-          Conv2d-121          [-1, 256, 32, 32]         262,144
-     BatchNorm2d-122          [-1, 256, 32, 32]             512
-            ReLU-123          [-1, 256, 32, 32]               0
-          Conv2d-124          [-1, 256, 32, 32]         589,824
-     BatchNorm2d-125          [-1, 256, 32, 32]             512
-            ReLU-126          [-1, 256, 32, 32]               0
-          Conv2d-127         [-1, 1024, 32, 32]         262,144
-     BatchNorm2d-128         [-1, 1024, 32, 32]           2,048
-            ReLU-129         [-1, 1024, 32, 32]               0
-      Bottleneck-130         [-1, 1024, 32, 32]               0
-          Conv2d-131          [-1, 256, 32, 32]         262,144
-     BatchNorm2d-132          [-1, 256, 32, 32]             512
-            ReLU-133          [-1, 256, 32, 32]               0
-          Conv2d-134          [-1, 256, 32, 32]         589,824
-     BatchNorm2d-135          [-1, 256, 32, 32]             512
-            ReLU-136          [-1, 256, 32, 32]               0
-          Conv2d-137         [-1, 1024, 32, 32]         262,144
-     BatchNorm2d-138         [-1, 1024, 32, 32]           2,048
-            ReLU-139         [-1, 1024, 32, 32]               0
-      Bottleneck-140         [-1, 1024, 32, 32]               0
-          Conv2d-141          [-1, 512, 32, 32]         524,288
-     BatchNorm2d-142          [-1, 512, 32, 32]           1,024
-            ReLU-143          [-1, 512, 32, 32]               0
-          Conv2d-144          [-1, 512, 16, 16]       2,359,296
-     BatchNorm2d-145          [-1, 512, 16, 16]           1,024
-            ReLU-146          [-1, 512, 16, 16]               0
-          Conv2d-147         [-1, 2048, 16, 16]       1,048,576
-     BatchNorm2d-148         [-1, 2048, 16, 16]           4,096
-          Conv2d-149         [-1, 2048, 16, 16]       2,097,152
-     BatchNorm2d-150         [-1, 2048, 16, 16]           4,096
-            ReLU-151         [-1, 2048, 16, 16]               0
-      Bottleneck-152         [-1, 2048, 16, 16]               0
-          Conv2d-153          [-1, 512, 16, 16]       1,048,576
-     BatchNorm2d-154          [-1, 512, 16, 16]           1,024
-            ReLU-155          [-1, 512, 16, 16]               0
-          Conv2d-156          [-1, 512, 16, 16]       2,359,296
-     BatchNorm2d-157          [-1, 512, 16, 16]           1,024
-            ReLU-158          [-1, 512, 16, 16]               0
-          Conv2d-159         [-1, 2048, 16, 16]       1,048,576
-     BatchNorm2d-160         [-1, 2048, 16, 16]           4,096
-            ReLU-161         [-1, 2048, 16, 16]               0
-      Bottleneck-162         [-1, 2048, 16, 16]               0
-          Conv2d-163          [-1, 512, 16, 16]       1,048,576
-     BatchNorm2d-164          [-1, 512, 16, 16]           1,024
-            ReLU-165          [-1, 512, 16, 16]               0
-          Conv2d-166          [-1, 512, 16, 16]       2,359,296
-     BatchNorm2d-167          [-1, 512, 16, 16]           1,024
-            ReLU-168          [-1, 512, 16, 16]               0
-          Conv2d-169         [-1, 2048, 16, 16]       1,048,576
-     BatchNorm2d-170         [-1, 2048, 16, 16]           4,096
-            ReLU-171         [-1, 2048, 16, 16]               0
-      Bottleneck-172         [-1, 2048, 16, 16]               0
-AdaptiveAvgPool2d-173           [-1, 2048, 1, 1]               0
-          Linear-174                    [-1, 1]           2,049
-          ResNet-175                    [-1, 1]               0
-         Sigmoid-176                    [-1, 1]               0
-================================================================
-Total params: 23,510,081
-Trainable params: 23,510,081
-Non-trainable params: 0
-----------------------------------------------------------------
-Input size (MB): 3.00
-Forward/backward pass size (MB): 1497.02
-Params size (MB): 89.68
-Estimated Total Size (MB): 1589.70
-----------------------------------------------------------------
+### 2. Vision Transformer (ViT) MediumD
+- Enhanced ViT architecture
+- Register tokens for improved feature capture
+- Global average pooling
+- Pretrained on ImageNet-12K
+- Fine-tuned on ImageNet-1K
+- Adaptive patch processing
 
+### 3. ResNet101
+- Deeper architecture compared to ResNet50
+- Enhanced feature extraction
+- Modified first conv layer for grayscale input
+- Transfer learning optimization
+- Selective layer unfreezing
+
+### 4. EfficientNetV2
+- Mobile-optimized architecture
+- Compound scaling for depth/width
+- Modified for single-channel input
+- Progressive layer unfreezing
+- Optimized inference performance
