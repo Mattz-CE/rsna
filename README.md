@@ -60,7 +60,7 @@ This project is focused on enhancing breast cancer detection in mammography usin
    git clone https://github.com/Mattz-CE/rsna   ```
 
 2. Install dependencies:   ```bash
-   pip install -r requirements.txt   ```
+   pip install -r requirements.txt```
 
 ### Running the Project
 
