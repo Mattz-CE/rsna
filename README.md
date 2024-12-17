@@ -1,4 +1,4 @@
-# RSNA Cancer Detection Project
+# RSNA Enhanced Breast Cancer Detection
 
 ## Overview
 
